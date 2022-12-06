@@ -24,6 +24,7 @@ import Cloudinary from "../middleware/cloudinary.js";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import EditUserInfoSchema from "../schemas/user/EditUserInfoSchema.js";
+// import client from "../connection/redis.js";
 const fileName = path.basename(fileURLToPath(import.meta.url)).slice(0, -3);
 
 async function generateToken(userId, userRole) {
@@ -124,6 +125,7 @@ export async function loginUser(req, res) {
         throw AccountNotFoundResponse;
       } else {
         const token = await generateToken(foundAccount.id, foundAccount.role);
+        // await client.set(foundAccount.id, token, { EX: 20 * 60 });
         const response = new OKHTTPResponse("Successfully login user", { token });
         res.status(response.statusCode).json(response);
       }

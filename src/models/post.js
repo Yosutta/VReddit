@@ -11,9 +11,9 @@ export default {
       // const QUERYSTRING = "SELECT * FROM posts ORDER BY createdAt DESC";
       const QUERYSTRING = `
       SELECT posts.id ,posts.title, posts.content,posts.createdAt, 
-      users.username as userUsername, users.profileImageUrl as userProfileImageUrl
+      usersinfo.username as userUsername, usersinfo.profileImageUrl as userProfileImageUrl
       FROM posts
-      INNER JOIN users ON posts.userId = users.id 
+      INNER JOIN usersinfo ON posts.userId = usersinfo.userId
       ORDER BY posts.createdAt desc
       `;
       const [rows, fields] = await pool.query(QUERYSTRING);
