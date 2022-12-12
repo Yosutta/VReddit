@@ -1,21 +1,21 @@
 import express from "express";
 import { getAllPosts, createPost, deleteAllPosts, getPost, updatePost, deletePost } from "../controllers/post.js";
 import authenticateJWT from "../middleware/authenticateJWT.js";
+import checkPrivilege from "../middleware/checkPrivilege.js";
 
 const router = express.Router();
 
 router
   .route("/")
-
   .get(getAllPosts)
-  .post(authenticateJWT, createPost)
-  .delete(deleteAllPosts);
+  .post(authenticateJWT, checkPrivilege, createPost)
+  .delete(authenticateJWT, checkPrivilege, deleteAllPosts);
 
 router
-  .route("/:id")
+  .route("/:postId")
 
   .get(getPost)
-  .put(updatePost)
-  .delete(deletePost);
+  .put(authenticateJWT, checkPrivilege, updatePost)
+  .delete(authenticateJWT, checkPrivilege, deletePost);
 
 export default router;

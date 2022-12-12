@@ -12,21 +12,24 @@ import {
   logoutUser,
   editUserPassword,
 } from "../controllers/user.js";
+import checkPrivilege from "../middleware/checkPrivilege.js";
 import authenticateJWT from "../middleware/authenticateJWT.js";
 const upload = multer();
 
 const router = express.Router();
 
-router.route("/").get(getAllUsers).delete(deleteAllUser);
+router.route("/").get(getAllUsers).delete(authenticateJWT, checkPrivilege, deleteAllUser);
+
 router
   .route("/:userId")
-  .get(authenticateJWT, getUserInfo)
-  .put(authenticateJWT, upload.single("profileImage"), editUserInfo)
-  .delete(authenticateJWT, deleteUser);
-router.put("/password/:userId", authenticateJWT, editUserPassword);
+  .get(getUserInfo)
+  .put(authenticateJWT, checkPrivilege, upload.single("profileImage"), editUserInfo)
+  .delete(authenticateJWT, checkPrivilege, deleteUser);
+
+router.put("/password/:userId", authenticateJWT, checkPrivilege, editUserPassword);
 router.route("/token").post(validateToken);
 router.route("/signup").post(upload.single("profileImage"), signupUser);
 router.route("/login").post(loginUser);
-router.route("/logout").post(logoutUser);
+router.route("/logout").post(authenticateJWT, logoutUser);
 
 export default router;

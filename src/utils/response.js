@@ -1,9 +1,13 @@
-import { StatusCodes } from "http-status-codes";
+import { ReasonPhrases, StatusCodes } from "http-status-codes";
 
 export class OKHTTPResponse {
-  constructor(message = StatusCodes.OK, data) {
+  constructor(message = ReasonPhrases.OK, data) {
     this.statusCode = StatusCodes.OK;
     this.message = message;
     this.data = data;
+  }
+
+  static onlyMessage(message) {
+    return OKHTTPResponse(message, null);
   }
 }

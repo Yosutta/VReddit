@@ -24,7 +24,8 @@ import Cloudinary from "../middleware/cloudinary.js";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import EditUserInfoSchema from "../schemas/user/EditUserInfoSchema.js";
-// import client from "../connection/redis.js";
+import client from "../connection/redis.js";
+import { StatusCodes } from "http-status-codes";
 const fileName = path.basename(fileURLToPath(import.meta.url)).slice(0, -3);
 
 async function generateToken(userId, userRole) {
@@ -125,7 +126,7 @@ export async function loginUser(req, res) {
         throw AccountNotFoundResponse;
       } else {
         const token = await generateToken(foundAccount.id, foundAccount.role);
-        // await client.set(foundAccount.id, token, { EX: 20 * 60 });
+        await client.set(foundAccount.id, token, { EX: 20 * 60 });
         const response = new OKHTTPResponse("Successfully login user", { token });
         res.status(response.statusCode).json(response);
       }
@@ -148,7 +149,14 @@ export async function loginUser(req, res) {
 
 export async function logoutUser(req, res) {
   try {
-    res.send("Logged out");
+    const userId = req.loggedInId;
+    const redisToken = await client.get(userId);
+
+    if (redisToken == null) return res.status(StatusCodes.OK).json({ message: "User was not logged in." });
+    else {
+      await client.del(userId);
+      return res.status(StatusCodes.OK).json({ message: "User logged out." });
+    }
   } catch (err) {
     const response = generateErrorResponse(fileName, err);
     res.status(response.statusCode).json(response);
@@ -164,7 +172,7 @@ export async function getUserInfo(req, res) {
     const userId = req.params.userId;
     const foundUserInfo = await UserInfo.getUserInfo(userId);
     let response = {};
-    !foundUserInfo
+    foundUserInfo.length == 0
       ? (response = new NotFoundResponse(undefined, `User with id ${userId} not found`))
       : (response = new OKHTTPResponse(undefined, { foundUserInfo }));
     res.status(response.statusCode).json(response);
@@ -231,32 +239,40 @@ export async function editUserInfo(req, res) {
     const paramUserId = req.params.userId;
     let response;
     if (sessionUserId !== paramUserId) {
-      response = new ForbiddenResponse(undefined, "Userid from session and userid from path parameter does not match");
-    } else {
-      fs.writeFileSync(`./resources/images/${sessionUserId}.jpg`, image.buffer, { flag: "w+" });
-      await Cloudinary.uploader
-        .upload(`./resources/images/${sessionUserId}.jpg`, {
-          folder: "/social/users/profileImage",
-          public_id: sessionUserId,
-        })
-        .then(async (responseData) => {
-          if (responseData) {
-            const result = await UserInfo.updateUserInfo({
-              sessionUserId,
-              username: validatedData.username,
-              firstname: validatedData.firstname,
-              lastname: validatedData.lastname,
-              birthdate: validatedData.birthdate,
-              profileImageUrl: responseData.secure_url,
-            });
-            response = new OKHTTPResponse("Successfully changed user info", result);
-          }
-        })
-        .catch((err) => {
-          throw err;
-        });
-      res.status(response.statusCode).json(response);
+      response = ForbiddenResponse.withMessage("Userid from session and userid from path parameter does not match");
     }
+
+    const foundUser = await User.getUserById(sessionUserId);
+    if (!foundUser) {
+      response = new NotFoundResponse();
+      response = NotFoundResponse.withMessage(`User with ${sessionUserId} not found.`);
+    }
+
+    fs.writeFileSync(`./resources/images/${sessionUserId}.jpg`, image.buffer, { flag: "w+" });
+    await Cloudinary.uploader
+      .upload(`./resources/images/${sessionUserId}.jpg`, {
+        folder: "/social/users/profileImage",
+        public_id: sessionUserId,
+      })
+      .then(async (responseData) => {
+        console.log(responseData);
+        if (responseData) {
+          const result = await UserInfo.updateUserInfo({
+            sessionUserId,
+            username: validatedData.username,
+            firstname: validatedData.firstname,
+            lastname: validatedData.lastname,
+            birthdate: validatedData.birthdate,
+            profileImageUrl: responseData.secure_url,
+          });
+          response = new OKHTTPResponse("Successfully changed user info", result);
+        }
+      })
+      .catch((err) => {
+        throw err;
+      });
+
+    return res.status(response.statusCode).json(response);
   } catch (err) {
     const response = generateErrorResponse(fileName, err);
     res.status(response.statusCode).json(response);
@@ -269,18 +285,33 @@ export async function deleteUser(req, res) {
     const sessionUserId = req.loggedInId;
     const paramUserId = req.params.userId;
     if (sessionUserId !== paramUserId) {
-      response = new ForbiddenResponse(undefined, "Userid from session and userid from path parameter does not match");
-    } else {
-      const foundAccount = await User.getUserById(sessionUserId);
-      if (!foundAccount) {
-        response = new NotFoundResponse(undefined, `User with id ${sessionUserId} not found`);
-      } else {
-        const result2 = await UserInfo.deleteUserInfo(sessionUserId);
-        const result1 = await User.deleteUser(sessionUserId);
-        response = new OKHTTPResponse("Successfully delete user", [result1, result2]);
-      }
+      response = new ForbiddenResponse();
+      response = ForbiddenResponse.withMessage("Userid from session and userid from path parameter does not match");
     }
-    res.status(response.statusCode).json(response);
+
+    const foundAccount = await User.getUserById(sessionUserId);
+    if (!foundAccount) {
+      response = new NotFoundResponse();
+      response = NotFoundResponse.withMessage(`User with ${sessionUserId} not found.`);
+    }
+
+    const result2 = await UserInfo.deleteUserInfo(sessionUserId);
+    const result1 = await User.deleteUser(sessionUserId);
+    response = new OKHTTPResponse("Successfully delete user", [result1, result2]);
+
+    await Cloudinary.uploader
+      .destroy(`social/users/profileImage/${sessionUserId}`)
+      .then(
+        fs.unlink(`./resources/images/${sessionUserId}.jpg`, (err) => {
+          if (err) throw err;
+        })
+      )
+      .catch((err) => {
+        console.log(err);
+        throw err;
+      });
+
+    return res.status(response.statusCode).json(response);
   } catch (err) {
     const response = generateErrorResponse(fileName, err);
     res.status(response.statusCode).json(response);

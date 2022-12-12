@@ -1,9 +1,10 @@
 import pool from "../middleware/pool.js";
-import postSchema from "../schemas/post.js";
+import CreatePostSchema from "../schemas/post/CreatePostSchema.js";
 import { StatusCodes } from "http-status-codes";
 import crypto from "crypto";
 import _ from "lodash";
 import { BadRequestResponse, HTTPErrorResponse, NotFoundResponse } from "../utils/error.js";
+import EditPostSchema from "../schemas/post/EditPostSchema.js";
 
 export default {
   async getAllPosts() {
@@ -28,7 +29,7 @@ export default {
       // Validate data with Joi
       const { title, content } = formData;
       const userId = formData.userId;
-      const validateData = await postSchema.validateAsync({ title, content });
+      const validateData = await CreatePostSchema.validateAsync({ title, content });
 
       const keys = _.keys(validateData);
       keys.unshift("id");
@@ -78,10 +79,8 @@ export default {
     try {
       // const QUERYSTRING = "SELECT * FROM posts WHERE id=?";
       const QUERYSTRING = `
-      SELECT posts.id ,posts.title, posts.content,posts.createdAt, 
-      users.username as userUsername, users.profileImageUrl as userProfileImageUrl
+      SELECT posts.id, posts.title, posts.content, posts.createdAt, posts.userId
       FROM posts
-      INNER JOIN users ON posts.userId = users.id 
       WHERE posts.id=?;`;
       const [rows, fields] = await pool.query(QUERYSTRING, postId);
       return rows[0];
@@ -92,8 +91,9 @@ export default {
 
   async updatePost(postId, formData) {
     try {
-      const keys = _.keys(formData);
-      const values = _.values(formData);
+      const validateData = await EditPostSchema.validateAsync({ ...formData });
+      const keys = _.keys(validateData);
+      const values = _.values(validateData);
       let QUERYSTRING = "UPDATE posts SET ";
       keys.forEach((key, INDEX) => {
         INDEX === keys.length - 1 ? (QUERYSTRING += `${key}=? `) : (QUERYSTRING += `${key}=?, `);

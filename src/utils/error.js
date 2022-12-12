@@ -18,12 +18,16 @@ export class HTTPErrorResponse {
 }
 
 export class NotFoundResponse {
-  constructor(name = ReasonPhrases.NOT_FOUND, message = "") {
+  constructor(name, message = "") {
     this.statusCode = StatusCodes.NOT_FOUND;
     this.error = {
       name,
       message,
     };
+  }
+
+  static withMessage(message) {
+    return new NotFoundResponse(ReasonPhrases.NOT_FOUND, message);
   }
 }
 
@@ -33,22 +37,30 @@ export const AccountNotFoundResponse = new NotFoundResponse(
 );
 
 export class UnauthorizedResponse {
-  constructor(name = ReasonPhrases.UNAUTHORIZED, message = "") {
+  constructor(name, message = "") {
     this.statusCode = StatusCodes.UNAUTHORIZED;
     this.error = {
       name,
       message,
     };
   }
+
+  static withMessage(message) {
+    return new UnauthorizedResponse(ReasonPhrases.UNAUTHORIZED, message);
+  }
 }
 
 export class ForbiddenResponse {
-  constructor(name = ReasonPhrases.FORBIDDEN, message = "") {
+  constructor(name, message = "") {
     this.statusCode = StatusCodes.FORBIDDEN;
     this.error = {
       name,
       message,
     };
+  }
+
+  static withMessage(message) {
+    return new ForbiddenResponse(ReasonPhrases.FORBIDDEN, message);
   }
 }
 

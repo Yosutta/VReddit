@@ -98,22 +98,28 @@ export async function createTables() {
 }
 
 export async function populateTable() {
-  const populate_privileges = `INSERT INTO privileges (route, action) values
-    ("posts", "GET"), ("posts", "POST"), ("posts", "DELETE"),
+  const privilegesRows = await pool.query("SELECT * FROM privileges");
+  if (privilegesRows[0].length == 0) {
+    const populate_privileges = `INSERT INTO privileges (route, action) values
+    ("posts/", "GET"), ("posts/", "POST"), ("posts/", "DELETE"),
     ("posts/:postId", "GET"), ("posts/:postId", "PUT"), ("posts/:postId", "DELETE"),
-    ("users", "GET"), ("users", "POST"), ("users", "DELETE"),
+    ("users/", "GET"), ("users/", "POST"), ("users/", "DELETE"),
     ("users/:userId", "GET"), ("users/:userId", "PUT"), ("users/:userId", "DELETE");`;
-  await pool.query(populate_privileges);
+    await pool.query(populate_privileges);
+  }
 
-  const populate_rolePriveleges = `
-    INSERT INTO rolePrivileges (roleName, privilegeId)
-    values ("user", 1), ("user", 2), ("user", 4), ("user", 5), ("user", 6), ("user", 10), ("user", 11), ("user", 12),
-    ("admin", 1), ("admin", 2), ("admin", 3), ("admin", 4), ("admin", 5), ("admin", 6), ("admin", 7), ("admin", 8), ("admin", 10), ("admin", 11), ("admin", 12);`;
-  await pool.query(populate_rolePriveleges);
+  const rolePrivilegesRows = await pool.query("SELECT * FROM rolePrivileges");
+  if (rolePrivilegesRows[0].length == 0) {
+    const populate_rolePriveleges = `
+      INSERT INTO rolePrivileges (roleName, privilegeId)
+      values ("user", 1), ("user", 2), ("user", 4), ("user", 5), ("user", 6), ("user", 7), ("user", 10), ("user", 11), ("user", 12),
+      ("admin", 1), ("admin", 2), ("admin", 3), ("admin", 4), ("admin", 5), ("admin", 6), ("admin", 7), ("admin", 8), ("admin", 10), ("admin", 11), ("admin", 12);`;
+    await pool.query(populate_rolePriveleges);
+  }
 }
 
 await createDatabase("social");
 await createTables();
-// populateTable();
+populateTable();
 
 export default pool;
