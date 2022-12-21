@@ -1,4 +1,5 @@
 import User from "../models/user.js";
+import Post from "../models/post.js";
 import Privilege from "../models/privilege.js";
 import UserInfo from "../models/userInfo.js";
 import {
@@ -18,6 +19,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import _ from "lodash";
+import sharp from "sharp";
 
 import Cloudinary from "../middleware/cloudinary.js";
 
@@ -61,6 +63,7 @@ export async function signupUser(req, res) {
   try {
     const { email, password, username, firstname, lastname, birthdate } = req.body;
     const imageFile = req.file;
+    const imageBuffer = await sharp(imageFile.buffer).resize({ width: 320, height: 320, fit: "cover" }).toBuffer();
     let validatedData = await SignUpUserSchema.validateAsync({
       email,
       password,
@@ -75,7 +78,7 @@ export async function signupUser(req, res) {
       password: validatedData.password,
     });
 
-    fs.writeFileSync(`./resources/images/${userId}.jpg`, imageFile.buffer, { flag: "w+" });
+    fs.writeFileSync(`./resources/images/${userId}.jpg`, imageBuffer, { flag: "w+" });
     await Cloudinary.uploader
       .upload(`./resources/images/${userId}.jpg`, {
         folder: "/social/users/profileImage",
@@ -172,7 +175,7 @@ export async function getUserInfo(req, res) {
     const userId = req.params.userId;
     const foundUserInfo = await UserInfo.getUserInfo(userId);
     let response = {};
-    foundUserInfo.length == 0
+    foundUserInfo == null
       ? (response = new NotFoundResponse(undefined, `User with id ${userId} not found`))
       : (response = new OKHTTPResponse(undefined, { foundUserInfo }));
     res.status(response.statusCode).json(response);
@@ -295,9 +298,11 @@ export async function deleteUser(req, res) {
       response = NotFoundResponse.withMessage(`User with ${sessionUserId} not found.`);
     }
 
+    const result1 = await Post.deletePostByUserId(sessionUserId);
     const result2 = await UserInfo.deleteUserInfo(sessionUserId);
-    const result1 = await User.deleteUser(sessionUserId);
-    response = new OKHTTPResponse("Successfully delete user", [result1, result2]);
+    const result3 = await User.deleteUser(sessionUserId);
+    await client.del(sessionUserId);
+    response = new OKHTTPResponse("Successfully delete user", [result1, result2, result3]);
 
     await Cloudinary.uploader
       .destroy(`social/users/profileImage/${sessionUserId}`)
@@ -322,10 +327,16 @@ export async function validateToken(req, res) {
   try {
     const token = req.body.jwt_token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const remainExpiresMinutes = (decoded.exp * 1000 - Date.now()) / (60 * 1000);
+    const redisToken = await client.get(decoded.id);
+    if (redisToken === null) throw new NotFoundResponse(null, "Token does not exist in Redis database");
+    if (redisToken !== token) throw new UnauthorizedResponse(null, "Session token and database token does not match");
+
     let response;
+    const remainExpiresMinutes = (decoded.exp * 1000 - Date.now()) / (60 * 1000);
     if (remainExpiresMinutes < 5) {
-      const token = await generateToken(decoded.id);
+      const foundUserRole = await User.getRoleById(decoded.id);
+      const token = await generateToken(decoded.id, foundUserRole.role);
+      await client.set(decoded.id, token, { EX: 20 * 60 });
       response = new OKHTTPResponse("User token refreshed", { token });
     } else {
       response = new OKHTTPResponse("User token validated", undefined);

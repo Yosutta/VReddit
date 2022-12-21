@@ -52,7 +52,7 @@ export async function createTables() {
       title nvarchar(128) NOT NULL,
       content nvarchar(1024) NOT NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      userId varchar(36) NOT NULL UNIQUE
+      userId varchar(36) NOT NULL
     );`;
     await pool.query(social_posts);
     const social_posts_constraints = `ALTER table posts ADD FOREIGN KEY (userId) REFERENCES users(id);`;
@@ -62,8 +62,8 @@ export async function createTables() {
     CREATE TABLE IF NOT EXISTS usersInfo (
       userId varchar(36) NOT NULL UNIQUE,
       username varchar(32) NOT NULL,
-      firstname varchar(32) NOT NULL,
-      lastname varchar(32) NOT NULL,
+      firstname varchar(16) NOT NULL,
+      lastname varchar(16) NOT NULL,
       birthdate varchar(64) NOT NULL,
       profileImageUrl varchar(2048) NOT NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -92,6 +92,39 @@ export async function createTables() {
     ALTER TABLE rolePrivileges
     ADD FOREIGN KEY (privilegeId) REFERENCES privileges(id);`;
     await pool.query(social_role_privileges_constraints);
+
+    const social_posts_comments = `
+    CREATE TABLE IF NOT EXISTS postsComments (
+      id varchar(36) PRIMARY KEY,
+      postId varchar(36) NOT NULL,
+      commentId varchar(36),
+      userId varchar(36) NOT NULL,
+      commentText varchar(256) NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      edited bit DEFAULT 0
+    );`;
+    await pool.query(social_posts_comments);
+    const social_posts_comments_constraints = `
+    ALTER TABLE postsComments
+    ADD FOREIGN KEY (postId) REFERENCES posts(id),
+    ADD FOREIGN KEY (commentId) REFERENCES postsComments(id),
+    ADD FOREIGN KEY (userId) REFERENCES usersinfo(userId);`;
+    await pool.query(social_posts_comments_constraints);
+
+    const social_posts_comment_ratings = `
+    CREATE TABLE IF NOT EXISTS postsCommentRatings(
+      postId varchar(36) NOT NULL,
+      commentId varchar(36),
+      userId varchar(36) NOT NULL,
+      rating bit NOT NULL
+    );`;
+    await pool.query(social_posts_comment_ratings);
+    const social_posts_comment_ratings_constraints = `
+    ALTER TABLE postsCommentRatings
+    ADD FOREIGN KEY (postId) REFERENCES posts(id),
+    ADD FOREIGN KEY (commentId) REFERENCES postsComments(id),
+    ADD FOREIGN KEY (userId) REFERENCES usersinfo(userId);`;
+    await pool.query(social_posts_comment_ratings_constraints);
   } catch (err) {
     console.log(err);
   }

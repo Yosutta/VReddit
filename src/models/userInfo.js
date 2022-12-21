@@ -6,7 +6,7 @@ export default {
     try {
       const QUERYSTRING = "SELECT * from usersInfo WHERE userId=?";
       const [rows, fields] = await pool.query(QUERYSTRING, [userId]);
-      return rows;
+      return rows[0];
     } catch (err) {
       throw err;
     }

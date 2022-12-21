@@ -11,8 +11,8 @@ const checkPrivilege = async (req, res, next) => {
     const payload = jwt.decode(redisToken);
     const wildCardPath = req.baseUrl.slice(1) + req.route.path;
 
-    console.log(payload.privileges);
-    console.log(`${req.method} - ${wildCardPath}`);
+    // console.log(payload.privileges);
+    // console.log(`${req.method} - ${wildCardPath}`);
 
     const privilege = _.values(_.pick(payload.privileges, wildCardPath))[0];
 

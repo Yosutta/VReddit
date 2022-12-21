@@ -68,6 +68,21 @@ export async function getPost(req, res) {
   }
 }
 
+export async function getPostAndAuthorDetail(req, res) {
+  try {
+    const postId = req.params.postId;
+    const foundPost = await Post.getPostAndAuthorDetail(postId);
+    let response;
+    !foundPost
+      ? (response = new NotFoundResponse(undefined, `Post ${postId} not found`))
+      : (response = new OKHTTPResponse(undefined, { foundPost }));
+    res.status(response.statusCode).json(response);
+  } catch {
+    const response = generateErrorResponse(fileName, err);
+    res.status(response.statusCode).json(response);
+  }
+}
+
 export async function updatePost(req, res) {
   try {
     const postId = req.params.postId;

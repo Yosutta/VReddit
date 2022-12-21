@@ -12,7 +12,7 @@ export default {
       // const QUERYSTRING = "SELECT * FROM posts ORDER BY createdAt DESC";
       const QUERYSTRING = `
       SELECT posts.id ,posts.title, posts.content,posts.createdAt, 
-      usersinfo.username as userUsername, usersinfo.profileImageUrl as userProfileImageUrl
+      usersinfo.username as userUsername, usersinfo.profileImageUrl as userProfileImageUrl, usersinfo.userId as userId
       FROM posts
       INNER JOIN usersinfo ON posts.userId = usersinfo.userId
       ORDER BY posts.createdAt desc
@@ -45,10 +45,7 @@ export default {
       });
       // Concate QUERYSTRING with String of ?,
       QUERYSTRING += `values(${new Array(values.length + 1).join("?, ").slice(0, -2)})`;
-      console.log(QUERYSTRING);
-
       const [rows, fields] = await pool.query(QUERYSTRING, [...values]);
-      console.log(rows.sql);
       return rows;
     } catch (err) {
       const errorName = err.name;
@@ -89,6 +86,20 @@ export default {
     }
   },
 
+  async getPostAndAuthorDetail(postId) {
+    try {
+      // const QUERYSTRING = "SELECT * FROM posts WHERE id=?";
+      const QUERYSTRING = `
+      SELECT posts.id, posts.title, posts.content, posts.createdAt, posts.userId, usersInfo.username, usersInfo.profileImageUrl FROM posts
+      INNER JOIN usersInfo on posts.userId = usersInfo.userId
+      WHERE posts.id=?;`;
+      const [rows, fields] = await pool.query(QUERYSTRING, postId);
+      return rows[0];
+    } catch (err) {
+      throw err;
+    }
+  },
+
   async updatePost(postId, formData) {
     try {
       const validateData = await EditPostSchema.validateAsync({ ...formData });
@@ -114,8 +125,18 @@ export default {
     try {
       const QUERYSTRING = "DELETE FROM posts WHERE id=?";
       const [row, fields] = await pool.query(QUERYSTRING, [postId]);
+      return row;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async deletePostByUserId(userId) {
+    try {
+      const QUERYSTRING = "DELETE FROM posts WHERE userId=?";
+      const [row, fields] = await pool.query(QUERYSTRING, [userId]);
       if (!row.affectedRows) {
-        throw new NotFoundResponse(undefined, `Post id ${postId} not found`);
+        throw new NotFoundResponse(undefined, `User with id ${userId} has no existing post.`);
       } else {
         return row;
       }

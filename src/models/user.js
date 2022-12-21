@@ -52,6 +52,16 @@ export default {
     }
   },
 
+  async getRoleById(userId) {
+    try {
+      const QUERYSTRING = "SELECT role FROM users WHERE id=?";
+      const [rows, fields] = await pool.query(QUERYSTRING, [userId]);
+      return rows[0];
+    } catch (err) {
+      throw err;
+    }
+  },
+
   async editUserPassword(formData) {
     try {
       const { sessionUserId: userId, passwordHash } = formData;
