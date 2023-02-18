@@ -1,7 +1,0 @@
-[3:30:43 PM; 2/17/2023; Error: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OIN social.usersinfo ON social.usersinfo.userId = social.postscomments.userId
-  ' at line 4
-    at PromisePool.query (E:\Selfstudy-Project\express-api\node_modules\mysql2\promise.js:341:22)
-    at Object.getParentCommentsByPostId (file:///E:/Selfstudy-Project/express-api/src/models/comment.js:16:41)
-    at getPostInitialComments (file:///E:/Selfstudy-Project/express-api/src/controllers/comment.js:23:48)
-    at processTicksAndRejections (node:internal/process/task_queues:96:5)
-[1:15:25 PM; 2/18/2023; ReferenceError: imageFile is not defined
