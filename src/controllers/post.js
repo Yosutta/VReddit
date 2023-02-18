@@ -1,16 +1,9 @@
 import Post from "../models/post.js";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import {
-  HTTPResponse,
-  InternalServerErrorResponse,
-  NotFoundResponse,
-  generateErrorResponse,
-  ForbiddenResponse,
-} from "../utils/error.js";
+import { NotFoundResponse, generateErrorResponse, ForbiddenResponse } from "../utils/error.js";
 import { OKHTTPResponse } from "../utils/response.js";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import post from "../models/post.js";
 
 const fileName = path.basename(fileURLToPath(import.meta.url)).slice(0, -3);
 

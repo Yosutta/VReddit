@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import postRoute from "./routes/post.js";
 import userRoute from "./routes/user.js";
+import commentRoute from "./routes/comment.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(
 
 app.use("/posts", postRoute);
 app.use("/users", userRoute);
+app.use("/comments", commentRoute);
 
 app.get("/", (req, res) => {
   res.json({ data: "This is a robbery" });

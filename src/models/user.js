@@ -1,10 +1,7 @@
 import _ from "lodash";
 import crypto from "crypto";
 import pool from "../middleware/pool.js";
-import SignUpUserSchema from "../schemas/user/SignUpUser.js";
-import LoginUserSchema from "../schemas/user/LoginUserSchema.js";
 import bcrypt from "bcrypt";
-import { BadRequestResponse, NotFoundResponse } from "../utils/error.js";
 
 export default {
   async getAllUsers() {

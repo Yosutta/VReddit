@@ -19,14 +19,21 @@ export default {
       const values = _.values(data);
       // Dynamically create a QUERYSTRING with keys and values
       let QUERYSTRING = "INSERT INTO usersInfo (";
+      // keys.map((key, INDEX, arr) => {
+      //   INDEX !== arr.length - 1 ? (QUERYSTRING += `${key}, `) : (QUERYSTRING += `${key}) `);
+      // });
+      // QUERYSTRING += "VALUES (";
+      // values.map((value, INDEX, arr) => {
+      //   INDEX !== arr.length - 1 ? (QUERYSTRING += `"${value}", `) : (QUERYSTRING += `"${value}") `);
+      // });
       keys.map((key, INDEX, arr) => {
         INDEX !== arr.length - 1 ? (QUERYSTRING += `${key}, `) : (QUERYSTRING += `${key}) `);
       });
       QUERYSTRING += "VALUES (";
       values.map((value, INDEX, arr) => {
-        INDEX !== arr.length - 1 ? (QUERYSTRING += `"${value}", `) : (QUERYSTRING += `"${value}") `);
+        INDEX !== arr.length - 1 ? (QUERYSTRING += `?, `) : (QUERYSTRING += `?) `);
       });
-      const [rows, fields] = await pool.query(QUERYSTRING);
+      const [rows, fields] = await pool.query(QUERYSTRING, [...values]);
       return rows;
     } catch (err) {
       throw err;

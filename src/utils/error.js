@@ -1,4 +1,5 @@
 import { StatusCodes, ReasonPhrases } from "http-status-codes";
+import logger from "./logger.js";
 
 export class HTTPResponse {
   constructor(statusCode, name, message) {
@@ -75,12 +76,16 @@ export class BadRequestResponse {
 }
 
 export class InternalServerErrorResponse {
-  constructor(name = ReasonPhrases.INTERNAL_SERVER_ERROR, message = "") {
+  constructor(name, message = "") {
     this.statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
     this.error = {
       name,
       message,
     };
+  }
+
+  static withMessage(message) {
+    return new InternalServerErrorResponse(ReasonPhrases.INTERNAL_SERVER_ERROR, message);
   }
 }
 
@@ -95,7 +100,7 @@ export class SessionExpiredErrorResponse {
 }
 
 export function generateErrorResponse(fileName, err) {
-  console.log(`Error caught in ${fileName} controller:\n`, err);
+  logger.error(fileName, err);
   let errResponse;
   !err.statusCode ? (errResponse = new InternalServerErrorResponse(undefined, err.message)) : (errResponse = err);
   return errResponse;

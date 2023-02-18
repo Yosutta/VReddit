@@ -28,6 +28,7 @@ import { fileURLToPath } from "url";
 import EditUserInfoSchema from "../schemas/user/EditUserInfoSchema.js";
 import client from "../connection/redis.js";
 import { StatusCodes } from "http-status-codes";
+import logger from "../utils/logger.js";
 const fileName = path.basename(fileURLToPath(import.meta.url)).slice(0, -3);
 
 async function generateToken(userId, userRole) {
@@ -62,8 +63,12 @@ export async function getAllUsers(req, res) {
 export async function signupUser(req, res) {
   try {
     const { email, password, username, firstname, lastname, birthdate } = req.body;
-    const imageFile = req.file;
-    const imageBuffer = await sharp(imageFile.buffer).resize({ width: 320, height: 320, fit: "cover" }).toBuffer();
+    let imageFile = req.file;
+    let imageFileBuffer;
+    // Check if image buffer exists
+    if (_.has(imageFile, "buffer")) imageFileBuffer = req.file.buffer;
+    else imageFileBuffer = fs.readFileSync("./resources/images/default.jpg");
+    const imageBuffer = await sharp(imageFileBuffer).resize({ width: 320, height: 320, fit: "cover" }).toBuffer();
     let validatedData = await SignUpUserSchema.validateAsync({
       email,
       password,
@@ -237,7 +242,12 @@ export async function editUserInfo(req, res) {
   try {
     const { username, firstname, lastname, birthdate } = req.body;
     const validatedData = await EditUserInfoSchema.validateAsync({ username, firstname, lastname, birthdate });
-    const image = req.file;
+    const imageFile = req.file;
+    let imageFileBuffer;
+    // Check if image buffer exists
+    if (_.has(imageFile, "buffer")) imageFileBuffer = req.file.buffer;
+    else imageFileBuffer = fs.readFileSync("./resources/images/default.jpg");
+    const imageBuffer = await sharp(imageFileBuffer).resize({ width: 320, height: 320, fit: "cover" }).toBuffer();
     const sessionUserId = req.loggedInId;
     const paramUserId = req.params.userId;
     let response;
@@ -251,14 +261,13 @@ export async function editUserInfo(req, res) {
       response = NotFoundResponse.withMessage(`User with ${sessionUserId} not found.`);
     }
 
-    fs.writeFileSync(`./resources/images/${sessionUserId}.jpg`, image.buffer, { flag: "w+" });
+    fs.writeFileSync(`./resources/images/${sessionUserId}.jpg`, imageBuffer, { flag: "w+" });
     await Cloudinary.uploader
       .upload(`./resources/images/${sessionUserId}.jpg`, {
         folder: "/social/users/profileImage",
         public_id: sessionUserId,
       })
       .then(async (responseData) => {
-        console.log(responseData);
         if (responseData) {
           const result = await UserInfo.updateUserInfo({
             sessionUserId,
@@ -274,7 +283,6 @@ export async function editUserInfo(req, res) {
       .catch((err) => {
         throw err;
       });
-
     return res.status(response.statusCode).json(response);
   } catch (err) {
     const response = generateErrorResponse(fileName, err);

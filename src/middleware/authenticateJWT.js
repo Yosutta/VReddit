@@ -1,7 +1,11 @@
-import { StatusCodes } from "http-status-codes";
 import jwt from "jsonwebtoken";
 import client from "../connection/redis.js";
 import { ForbiddenResponse, SessionExpiredErrorResponse, UnauthorizedResponse } from "../utils/error.js";
+import logger from "../utils/logger.js";
+
+import * as path from "path";
+import { fileURLToPath } from "url";
+const fileName = path.basename(fileURLToPath(import.meta.url)).slice(0, -3);
 
 const authenticateJWT = async (req, res, next) => {
   try {
@@ -40,9 +44,16 @@ const authenticateJWT = async (req, res, next) => {
       next();
     }
   } catch (err) {
-    console.log(err);
     if (err.name === "TokenExpiredError") {
+      logger.info(fileName, err);
       const response = new SessionExpiredErrorResponse(undefined, "JWT token has expired, please login again");
+      res.status(response.statusCode).json(response);
+    } else if (err.name === "JsonWebTokenError") {
+      logger.warn(fileName, err);
+      const response = new SessionExpiredErrorResponse(undefined, "Invalid signature - JWT, please login again");
+      res.status(response.statusCode).json(response);
+    } else {
+      const response = generateErrorResponse(fileName, err);
       res.status(response.statusCode).json(response);
     }
   }
